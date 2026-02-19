@@ -9,9 +9,51 @@ import cityrescue.exceptions.*;
  * Your task is to implement the full specification.
  * You may add additional classes in any package(s) you like.
  */
+
+
+public class CityMap {
+
+    public static int width;
+    public static int height;
+    public boolean blocked[width][height]; 
+
+}
+
+
+public class Station {
+
+}
+
+public class Incident {
+
+}
+
+public class Unit {
+
+}
+
+public class FireTruck extends Unit {
+
+}
+
+public class PoliceCar extends Unit {
+
+}
+
+public class Ambulance extends Unit {
+
+}
+
+
 public class CityRescueImpl implements CityRescue {
 
+    static final int MAX_STATIONS = 15;
+    static final int MAX_UNITS = 40;
+    static final int MAX_INCIDENTS = 180;
+
+
     // TODO: add fields (map, arrays for stations/units/incidents, counters, tick, etc.)
+
 
     @Override
     public void initialise(int width, int height) throws InvalidGridException {
