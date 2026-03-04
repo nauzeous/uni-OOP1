@@ -13,44 +13,158 @@ import cityrescue.exceptions.*;
 
 class CityMap {
 
-    public static int width;
-    public static int height;
-    public boolean blocked[][]; 
+    private final int width;
+    private final int height;
+    private final boolean[][] blocked;
 
-
-    public CityMap(int width, int height){
-
-        blocked = new boolean[width][height]; // all cells initialised to false
-        units = new Unit[MAX_UNITS];
-
-
+    public CityMap(int width, int height) {
+        this.width = width;
+        this.height = height;
+        this.blocked = new boolean[width][height]; //all cells initialised to false
     }
 
+    public int getWidth() {return width;}
+    public int getHeight() {return height;}
+
+    public boolean isBlocked(int x, int y) {
+        return blocked[x][y];
+    }
 }
 
-
 class Station {
+
+    private int stationId;
+    private int stationCapacity;
+    private UnitType[] unitTypes;
+    private int x;
+    private int y;
+
+    public Station(int id, int x, int y) {
+        this.stationId = id;
+        this.x = x;
+        this.y = y;
+    }
+
+    public int getStationId() {return stationId;}
+    public int getX() {return x;}
+    public int getY() {return y;}
+    
+    public int getCapacity() {return stationCapacity;}
+    public void setCapacity(int capacity) {
+        this.stationCapacity = capacity;
+    }
+
+    public UnitType[] getUnitTypes() {return unitTypes;}
+
 
 }
 
 class Incident {
+    
+    private int incidentID;
+    private IncidentType type;
+    private int severity;
+    private IncidentStatus status;
+    private int x;
+    private int y;
+    
+    public Incident(int id, IncidentType type, int severity, int x, int y) {
+        this.incidentID = id;
+        this.type = type;
+        this.severity = severity;
+        this.x = x;
+        this.y =y;
+        this.status = IncidentStatus.REPORTED;
+    }
+
+    public int getIncidentId() {return incidentID;}
+    public IncidentType getIncidentType() {return type;}
+    public int getX() {return x;}
+    public int getY() {return y;}
+
+    public int getSeverity() {return severity;}
+    public void setSeverity(int severity) {
+        this.severity = severity;
+    }
+
+    public IncidentStatus getStatus() {return status;}
+    public void setStatus(IncidentStatus status) {
+        this.status = status;
+    }
 
 }
 
-class Unit {
+abstract class Unit {
 
+    private int unitID;
+    private UnitType type;
+    private int homeStationId;
+    private int x;
+    private int y;
+    private UnitStatus status = UnitStatus.IDLE;
+
+    public Unit(int id, UnitType type, int homeStationId, int x, int y) {
+        this.unitID = id;
+        this.type = type;
+        this.homeStationId = homeStationId;
+        this.x = x;
+        this.y = y;
+    }
+
+    public int getUnitId() {return unitID;}
+    public UnitType getType() {return type;}
+    public int getHomeStationId() {return homeStationId;}
+    
+    public int getX() {return x;}
+    public int getY() {return y;}
+    public void setLocation(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public UnitStatus getStatus() {return status;}
+    public void setStatus(UnitStatus status) {
+        this.status = status;
+    }
+
+    public abstract boolean canHandle(IncidentType type);
 }
 
 class FireTruck extends Unit {
+    
+    public FireTruck(int id, int homeStationId, int x, int y) {
+        super(id, UnitType.FIRE_ENGINE, homeStationId, x, y);
+    }
+
+    @Override
+    public boolean canHandle(IncidentType type) {
+        return type == IncidentType.FIRE;
+    }
 
 }
 
 class PoliceCar extends Unit {
 
+    public PoliceCar(int id, int homeStationId, int x, int y) {
+        super(id, UnitType.POLICE_CAR, homeStationId, x, y);
+    }
+
+    @Override
+    public boolean canHandle(IncidentType type) {
+        return type == IncidentType.CRIME;
+    }
 }
 
 class Ambulance extends Unit {
 
+    public Ambulance(int id, int homeStationId, int x, int y) {
+        super(id, UnitType.AMBULANCE, homeStationId, x, y);
+    }
+
+    @Override
+    public boolean canHandle(IncidentType type) {
+        return type == IncidentType.MEDICAL;
+    }
 }
 
 
@@ -59,6 +173,7 @@ public class CityRescueImpl implements CityRescue {
     static final int MAX_STATIONS = 15;
     static final int MAX_UNITS = 40;
     static final int MAX_INCIDENTS = 180;
+
 
 
 
