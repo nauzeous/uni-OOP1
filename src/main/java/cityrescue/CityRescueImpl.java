@@ -11,36 +11,45 @@ import cityrescue.exceptions.*;
  */
 
 
-public class CityMap {
+class CityMap {
 
     public static int width;
     public static int height;
-    public boolean blocked[width][height]; 
+    public boolean blocked[][]; 
+
+
+    public CityMap(int width, int height){
+
+        blocked = new boolean[width][height]; // all cells initialised to false
+        units = new Unit[MAX_UNITS];
+
+
+    }
 
 }
 
 
-public class Station {
+class Station {
 
 }
 
-public class Incident {
+class Incident {
 
 }
 
-public class Unit {
+class Unit {
 
 }
 
-public class FireTruck extends Unit {
+class FireTruck extends Unit {
 
 }
 
-public class PoliceCar extends Unit {
+class PoliceCar extends Unit {
 
 }
 
-public class Ambulance extends Unit {
+class Ambulance extends Unit {
 
 }
 
@@ -50,6 +59,8 @@ public class CityRescueImpl implements CityRescue {
     static final int MAX_STATIONS = 15;
     static final int MAX_UNITS = 40;
     static final int MAX_INCIDENTS = 180;
+
+
 
 
     // TODO: add fields (map, arrays for stations/units/incidents, counters, tick, etc.)
