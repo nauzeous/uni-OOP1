@@ -29,18 +29,25 @@ class CityMap {
     public boolean isBlocked(int x, int y) {
         return blocked[x][y];
     }
+
+    public void setBlocked(int x, int y, boolean value) {
+        blocked[x][y] = value;
+    }
 }
 
 class Station {
 
-    private int stationId;
+    private final int stationId;
     private int stationCapacity;
-    private UnitType[] unitTypes;
-    private int x;
-    private int y;
+    private Unit[] stationUnits;
+    private final int x;
+    private final int y;
+    private final String name;
+    private int stationUnitCount;
 
-    public Station(int id, int x, int y) {
+    public Station(int id, String name, int x, int y) {
         this.stationId = id;
+        this.name = name;
         this.x = x;
         this.y = y;
     }
@@ -48,14 +55,33 @@ class Station {
     public int getStationId() {return stationId;}
     public int getX() {return x;}
     public int getY() {return y;}
+    public String getName() {return name;}
     
     public int getCapacity() {return stationCapacity;}
     public void setCapacity(int capacity) {
         this.stationCapacity = capacity;
     }
 
-    public UnitType[] getUnitTypes() {return unitTypes;}
+    public Unit[] getStationUnits() {return stationUnits;}
+    public int getStationUnitCount() {return stationUnitCount;}
 
+    public void addUnit(Unit unit) {
+        stationUnits[stationUnitCount++] = unit;
+    }
+
+    public void removeUnit(int unitId) {
+        for (int i = 0; i < stationUnitCount; i++) {
+            if (stationUnits[i].getUnitId() == unitId) {
+                for (int j = i; j < stationUnitCount - 1; j++) {
+                    stationUnits[j] = stationUnits[j + 1];
+                }
+
+                stationUnits[stationUnitCount - 1] = null;
+                stationUnitCount--;
+                return;
+            }
+        }
+    }
 
 }
 
@@ -127,6 +153,9 @@ abstract class Unit {
     public int getUnitId() {return unitID;}
     public UnitType getType() {return type;}
     public int getHomeStationId() {return homeStationId;}
+    public void setHomeStationId(int id) {
+        this.homeStationId = id;
+    }
     
     public int getX() {return x;}
     public int getY() {return y;}
@@ -205,7 +234,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void initialise(int width, int height) throws InvalidGridException {
-        // TODO: implement
         if (width <= 0 || height <= 0) {
             throw new InvalidGridException("Width and height must both be greater than 0");
         }
@@ -219,18 +247,16 @@ public class CityRescueImpl implements CityRescue {
         unitCount = 0;
         incidentCount = 0;
 
-        currentTik = 0;
+        currentTick = 0;
     }
 
     @Override
     public int[] getGridSize() {
-        // TODO: implement
         return new int[] {map.getWidth(), map.getHeight() };
     }
 
     @Override
     public void addObstacle(int x, int y) throws InvalidLocationException {
-        // TODO: implement
         if (!isLocationValid(x, y)) {
             throw new InvalidLocationException("Invalid grid location");
         }
@@ -240,7 +266,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void removeObstacle(int x, int y) throws InvalidLocationException {
-        // TODO: implement
         if (!isLocationValid(x, y)) {
             throw new InvalidLocationException("Invalid grid location");
         }
@@ -250,7 +275,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public int addStation(String name, int x, int y) throws InvalidNameException, InvalidLocationException {
-        // TODO: implement
         if (name == null) {
             throw new InvalidNameException("Name cannot be blank");   
         }
@@ -271,7 +295,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void removeStation(int stationId) throws IDNotRecognisedException, IllegalStateException {
-        // TODO: implement
         for (int i = 0; i < stationCount; i++) {
             if (stations[i].getStationId() == stationId) {
                 if (stations[i].getStationUnitCount() > 0) {
@@ -294,7 +317,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void setStationCapacity(int stationId, int maxUnits) throws IDNotRecognisedException, InvalidCapacityException {
-        // TODO: implement
         Station station = findStation(stationId);
 
         if (station == null) {
@@ -310,7 +332,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public int[] getStationIds() {
-        // TODO: implement
         int[] stationdIds = new int[stationCount];
 
         for (int i = 0; i < stationCount; i++) {
@@ -322,7 +343,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public int addUnit(int stationId, UnitType type) throws IDNotRecognisedException, InvalidUnitException, IllegalStateException {
-        // TODO: implement
         if (type == null) {
             throw new InvalidUnitException("");
         }
@@ -370,7 +390,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void decommissionUnit(int unitId) throws IDNotRecognisedException, IllegalStateException {
-        // TODO: implement
         Unit unit = findUnit(unitId);
 
         if (unit == null) {
@@ -402,7 +421,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void transferUnit(int unitId, int newStationId) throws IDNotRecognisedException, IllegalStateException {
-        // TODO: implement
         Unit unit = findUnit(unitId);
         Station newStation = findStation(newStationId);
 
@@ -433,11 +451,10 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void setUnitOutOfService(int unitId, boolean outOfService) throws IDNotRecognisedException, IllegalStateException {
-        // TODO: implement
         Unit unit = findUnit(unitId);
         if (outOfService){
             if (units[unitID].getStatus() == UnitStatus.OUT_OF_SERVICE){
-                throw new IllegalStateException("Unit is already out of service")
+                throw new IllegalStateException("Unit is already out of service");
             }
             else{
                 units[unitID].setStatus(UnitStatus.IDLE);
@@ -445,7 +462,7 @@ public class CityRescueImpl implements CityRescue {
         }
         else{
             if (units[unitID].getStatus() == UnitStatus.IDLE){
-                throw new IllegalStateException("Unit is already idle")
+                throw new IllegalStateException("Unit is already idle");
             }
             else{   
                 units[unitID].setStatus(UnitStatus.OUT_OF_SERVICE);
