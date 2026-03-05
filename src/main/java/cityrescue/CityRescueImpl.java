@@ -285,6 +285,7 @@ public class CityRescueImpl implements CityRescue {
 
                 stations[stationCount - 1] = null;
                 stationCount--;
+                return;
             }
         }
 
@@ -615,7 +616,7 @@ public class CityRescueImpl implements CityRescue {
                     }
                 }
                 else if (unitY < map.getHeight()-1 && map.isBlocked(unitX,unitY+1) == False){
-                    if (manhattandist(unitX,incidentX,unitY+1,incidentY) < baseDist){
+                    if (manhattanDist(unitX,incidentX,unitY+1,incidentY) < baseDist){
                         unit.setLocation(unitX,unitY+1);
                     }
                 }
@@ -643,6 +644,59 @@ public class CityRescueImpl implements CityRescue {
     @Override
     public String getStatus() {
         // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        String result = "";
+
+        result += "TICK=" + currentTick + "\n";
+
+        int obstacleCount = 0;
+        for (int x = 0; x < map.getWidth(); x++) {
+            for (int y = 0; y < map.getHeight(); y++) {
+                if (map.isBlocked(x, y)) {
+                    obstacleCount++;
+                }
+            }
+        }
+
+        result += "STATIONS" + stationCount + " UNITS=" + unitCount + " INCIDENTS=" + incidentCount + " OBSTACLES=" + obstacleCount + "\n" + "INCIDENTS\n";
+
+        for (int i= 0; i < incidentCount; i++) {
+            Incident inc = incidents[i];
+
+            result += "I#" + inc.getIncidentId() + " TYPE=" + inc.getIncidentType() + " SEV=" + inc.getSeverity() + " LOC=(" + inc.getX() + "," + inc.getY() + ") STATUS=" + inc.getStatus() + " UNIT=" + inc.getAssignedUnitID() + "\n" ;  
+        }
+
+        result += "UNITS\n";
+
+        for (int i = 0; i < unitCount; i++) {
+            Unit unit = units[i];
+
+            result += "U#" + unit.getUnitId() + " TYPE=" + unit.getType() + " HOME=" + unit.getHomeStationId() + " LOC=(" + unit.getX() + "," + unit.getY() + ") STATUS=" + unit.getStatus() + " INCIDENT=" + unit.getAssignedIncidentID() + " WORK=" + unit.getWork() +"\n";
+        }
+
+        return result;
+
+    }
+
+        private boolean isLocationValid(int x, int y) {
+        return x>= 0 && x < map.getWidth() && y>= 0 && y < map.getHeight();
+    }
+
+    private Station findStation(int stationId) {
+        for (int i = 0; i < stationCount; i++) {
+            if (stations[i].getStationId() == stationId) {
+                return stations[i];
+            }
+        }
+        return null;
+    }
+
+
+    private Unit findUnit(int unitId) {
+        for (int i = 0; i < unitCount; i++) {
+            if (units[i].getUnitId() == unitId) {
+                return units[i];
+            }
+        }
+        return null;
     }
 }
