@@ -1,7 +1,16 @@
 package cityrescue;
 
-import cityrescue.enums.*;
-import cityrescue.exceptions.*;
+import cityrescue.enums.IncidentStatus;
+import cityrescue.enums.IncidentType;
+import cityrescue.enums.UnitStatus;
+import cityrescue.enums.UnitType;
+import cityrescue.exceptions.IDNotRecognisedException;
+import cityrescue.exceptions.InvalidCapacityException;
+import cityrescue.exceptions.InvalidGridException;
+import cityrescue.exceptions.InvalidLocationException;
+import cityrescue.exceptions.InvalidNameException;
+import cityrescue.exceptions.InvalidSeverityException;
+import cityrescue.exceptions.InvalidUnitException;
 
 
 
@@ -44,6 +53,8 @@ class Station {
         this.x = x;
         this.y = y;
         this.name = name;
+        this.stationCapacity=5;
+        this.stationUnits = new Unit[stationCapacity];
     }
 
     public int getStationId() {return stationId;}
@@ -283,25 +294,31 @@ public class CityRescueImpl implements CityRescue {
         return station.getStationId();
     }
 
-    public Unit findUnit(int unitId) throws IDNotRecognisedException{
+    private Unit findUnit(int unitId) throws IDNotRecognisedException {
         for(int i = 0;i<unitCount;i++){
-            if (units[i].getUnitId() == unitId){return units[i];}
+            if (units[i].getUnitId() == unitId) {
+                return units[i];
+            }
         }
-        throw new IDNotRecognisedException("no unit with that ID");
+        throw new IDNotRecognisedException("no Unit found");
     }
 
-    public Incident findIncident(int incidentId) throws IDNotRecognisedException{
+    private Incident findIncident(int incidentId) throws IDNotRecognisedException{
         for(int i = 0;i<incidentCount;i++){
-            if (incidents[i].getIncidentId() == incidentId){return incidents[i];}
+            if (incidents[i].getIncidentId() == incidentId) {
+                return incidents[i];
+            }
         }
-        throw new IDNotRecognisedException("no incident with that ID");
+        throw new IDNotRecognisedException("no incident found");
     }
 
-    public Station findStation(int stationId) throws IDNotRecognisedException{
+    private Station findStation(int stationId) throws IDNotRecognisedException {
         for (int i =0;i<stationCount;i++){
-            if (stations[i].getStationId() == stationId){return stations[i];}
+            if (stations[i].getStationId() == stationId) {
+                return stations[i];
+            }
         }
-        throw new IDNotRecognisedException("no station with that ID");
+        throw new IDNotRecognisedException("no station found");
     }
 
     @Override
@@ -494,14 +511,22 @@ public class CityRescueImpl implements CityRescue {
     @Override
     public String viewUnit(int unitId) throws IDNotRecognisedException {
         Unit unit = findUnit(unitId);
+        int work = 0;
+        if (unit.getStatus() != UnitStatus.EN_ROUTE && unit.getStatus() != UnitStatus.AT_SCENE){
+            work = 0;
+        }
+        else{
+            work = findIncident(unit.getAssignedIncidentID()).getTicksRemaining();
+        }
         return String.format(
-            "Unit ID: %d\nType: %s\nHome Station ID: %d\nPosition: (%d, %d)\nStatus: %s",
+            "U#%d TYPE=%s HOME=%d LOC=(%d,%d) STATUS=%s WORK=%d",
             unit.getUnitId(),
             unit.getType(),
             unit.getHomeStationId(),
             unit.getX(),
             unit.getY(),
-            unit.getStatus()
+            unit.getStatus(),
+            work
         );
     }
 
@@ -538,9 +563,6 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public void escalateIncident(int incidentId, int newSeverity) throws IDNotRecognisedException, InvalidSeverityException, IllegalStateException {
-        if (incidentId > MAX_INCIDENTS || incidentId < 0 || incidents[incidentId] == null){
-            throw new IDNotRecognisedException("No incident with that ID");
-        }
         if (newSeverity > 5 || newSeverity < 1){
             throw new InvalidSeverityException("Severity not within range");
         }
@@ -559,18 +581,16 @@ public class CityRescueImpl implements CityRescue {
 
     @Override
     public String viewIncident(int incidentId) throws IDNotRecognisedException {
-        if (incidentId > MAX_INCIDENTS || incidentId < 0 || incidents[incidentId] == null){
-            throw new IDNotRecognisedException("No incident with that ID");
-        }
         Incident incident = findIncident(incidentId);
         return String.format(
-            "Incident ID: %d\nType: %s\nSeverity: %d\nPosition: (%d, %d)\nStatus: %s",
+            "I#%d TYPE=%s SEV=%d LOC=(%d,%d) STATUS=%s UNIT=%d",
             incidentId,
             incident.getIncidentType(),
             incident.getSeverity(),
             incident.getX(),
             incident.getY(),
-            incident.getStatus()
+            incident.getStatus(),
+            incident.getAssignedUnitId()
         );
     }
 
@@ -588,11 +608,12 @@ public class CityRescueImpl implements CityRescue {
             for (int j = 0;j<unitCount;j++){
                 Unit unit = units[j];
                 if (unit.getStatus() != UnitStatus.IDLE){continue;}
+                if (!unit.canHandle(incident.getIncidentType())) continue;
                 int unitX = unit.getX();
                 int unitY = unit.getY();
                 int manhattanDist = Math.abs(unitX-incidentX) + Math.abs(unitY-incidentY);
                 
-                if (manhattanDist < bestDist){
+                if (bestUnit == null || manhattanDist < bestDist || (manhattanDist == bestDist && unit.getUnitId() < bestUnit.getUnitId())){
                     bestDist = manhattanDist;
                     bestUnit = unit;
                 }
@@ -602,6 +623,7 @@ public class CityRescueImpl implements CityRescue {
                 unit.setStatus(UnitStatus.EN_ROUTE);
                 unit.setAssignedIncidentID(incident.getIncidentId());
                 incident.setAssignedUnitId(bestUnit.getUnitId());
+                incident.setStatus(IncidentStatus.DISPATCHED);
             }
         }
     }
@@ -615,7 +637,7 @@ public class CityRescueImpl implements CityRescue {
             if (status == IncidentStatus.DISPATCHED){
                 Unit unit = null;
                 int assignedUnitID = incident.getAssignedUnitId();
-                for(int j = 0;i<unitCount;i++){
+                for(int j = 0;j<unitCount;j++){
                     if (units[j].getUnitId() == assignedUnitID){unit = units[j];}
                 }
                 int unitX = unit.getX();
@@ -624,25 +646,11 @@ public class CityRescueImpl implements CityRescue {
                 int incidentY = incident.getY();
                 int baseDist = manhattanDist(unitX,incidentX,unitY,incidentY);
 
-                if (baseDist == 0){
-                    // assume a unit needs to be at a tile for 1 tick for progress to start
-                    incident.setStatus(IncidentStatus.IN_PROGRESS);
-                    unit.setStatus(UnitStatus.AT_SCENE);
-                    continue;
-                }
 
-                if (unitX > 0 && map.isBlocked(unitX-1,unitY) == false){
-                    // check the move West
-
-                    // technically dont need to calculate manhattan distance for each move
-                    // could just use the sign of unitX-incidentX 
-                    if (manhattanDist(unitX-1,incidentX,unitY,incidentY) < baseDist){
-                        unit.setLocation(unitX-1,unitY);
-                    }
-                }
-                else if (unitY < map.getHeight()-1 && map.isBlocked(unitX,unitY+1) == false){
+                if (unitY < map.getHeight()-1 && map.isBlocked(unitX,unitY+1) == false){
                     if (manhattanDist(unitX,incidentX,unitY+1,incidentY) < baseDist){
                         unit.setLocation(unitX,unitY+1);
+
                     }
                 }
                 else if (unitX < map.getWidth()-1 && map.isBlocked(unitX+1,unitY) == false){
@@ -655,17 +663,32 @@ public class CityRescueImpl implements CityRescue {
                         unit.setLocation(unitX,unitY-1);
                     }
                 }
+                else if (unitX > 0 && map.isBlocked(unitX-1,unitY) == false){
+                    if (manhattanDist(unitX-1,incidentX,unitY,incidentY) < baseDist){
+                        unit.setLocation(unitX-1,unitY);
+                    }
+                }
+                if (manhattanDist(unit.getX(),incidentX,unit.getY(),incidentY) == 0){
+                    incident.setStatus(IncidentStatus.IN_PROGRESS);
+                    unit.setStatus(UnitStatus.AT_SCENE);
+                }
             }
             else if (status == IncidentStatus.IN_PROGRESS){
                 incident.subtractTick();
                 if (incident.getTicksRemaining() == 0){
                     incident.setStatus(IncidentStatus.RESOLVED);
+                    Unit unit = null;
+                    int assignedUnitID = incident.getAssignedUnitId();
+                    for(int j = 0;j<unitCount;j++){
+                        if (units[j].getUnitId() == assignedUnitID){unit = units[j];}
+                    }
+                    unit.setStatus(UnitStatus.IDLE);
                 }
             }
         }
     }
 
-
+    @Override
     public String getStatus() {
         String result = "";
 
